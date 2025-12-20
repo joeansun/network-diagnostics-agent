@@ -1,0 +1,6 @@
+# Configuration for the network diagnostics agent.
+
+[probes.ping]
+enabled = true
+targets = ["1.1.1.1", "8.8.8.8", "gateway"]
+count = 5
