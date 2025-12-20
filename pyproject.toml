@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "netdiag"
+version = "0.1.0"
+description = "Local-first network diagnostics and observability tool"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+netdiag = "netdiag.cli:main"
+
+[project.optional-dependencies]
+dev = ["ruff"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I"]
