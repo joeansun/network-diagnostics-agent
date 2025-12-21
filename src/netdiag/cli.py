@@ -1,8 +1,7 @@
-#!/usr/bin/python
+from netdiag.config import load_config
+from netdiag.probes.ping import run_ping
+
 
 def main():
-    print("Hello World")
-    return
-
-
-
+    config = load_config()
+    run_ping(config)
