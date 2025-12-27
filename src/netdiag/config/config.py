@@ -1,12 +1,9 @@
 # config.py is used for loading configurations from config.toml
 
-import subprocess
-from dataclasses import dataclass
-from loader import ensure_config_dir, ensure_config_file
-from pathlib import Path
 import tomllib
-from loader import ensure_config_dir, ensure_config_file
+from dataclasses import dataclass
 
+from loader import ensure_config_file
 
 # subprocess.run(
 #     ["route", "-n", "get", "default"],
@@ -25,6 +22,10 @@ class PingConfig(Config):
     count: int
     timeout_ms: int
     interval_s: int
+
+@dataclass(frozen=True)
+class DnsConfig(Config):
+    targets: list[str]
 
 @dataclass(frozen=True)
 class AppConfig:
