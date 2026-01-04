@@ -3,7 +3,7 @@
 import tomllib
 from dataclasses import dataclass
 
-from loader import ensure_config_file
+from .loader import ensure_config_file
 
 # subprocess.run(
 #     ["route", "-n", "get", "default"],
@@ -72,7 +72,7 @@ def load_config() -> AppConfig:
     config_file_path = ensure_config_file()
     with config_file_path.open("rb") as f:
         config_raw = tomllib.load(f)
-    ping_config = parse_ping_config(config_raw)
+    ping_config = parse_ping_config(config_raw["probes"]["ping"])
     return AppConfig(
         ping=ping_config
     )

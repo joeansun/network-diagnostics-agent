@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from default import DEFAULT_CONFIG
+from .default import DEFAULT_CONFIG
 from platformdirs import user_config_dir
-
 
 def ensure_config_dir() -> Path:
     config_dir = Path(user_config_dir("netdiag"))
