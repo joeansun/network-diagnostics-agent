@@ -30,7 +30,8 @@ def parse_ping(raw_input: str) -> dict:
     return ping_info 
 
 def ping_anaylsis(raw_input: str) -> None:
-    return
+    ping_info = parse_ping(raw_input)
+    print(ping_info)
 
 
 command = "ping -c 5 google.com"
@@ -43,4 +44,4 @@ result = subprocess.run(
         )
 print(result.stdout)
 print()
-parse_ping(result.stdout)
+ping_anaylsis(result.stdout)
