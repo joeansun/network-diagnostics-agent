@@ -6,6 +6,13 @@ from itertools import dropwhile
 
 class DiagnosisCause(str, Enum):
     OK = "ok"
+    DNS_SUSPECTED = "dns_suspected"
+    WIFI_UNSTABLE = "wifi_unstable"
+    ISP_DEGRADED = "isp_degraded"
+    GATEWAY_ISSUE = "gateway_issue"
+    TARGET_UNREACHABLE = "target_unreachable"
+    UNKNOWN = "unknown"
+
 
 
 
@@ -58,8 +65,9 @@ def ping_anaylsis(raw_input: str) -> None:
             ping_metrics.rtt_stddev_ms >= UNSTABLE_DEVIATION * ping_metrics.rtt_avg_ms
             or (ping_metrics.rtt_max_ms - ping_metrics.rtt_min_ms) >= 100.0
         )
-        
     )
+
+
 
     print(ping_metrics)
     print(ping_signals)
