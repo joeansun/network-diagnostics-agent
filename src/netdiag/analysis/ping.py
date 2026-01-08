@@ -152,9 +152,10 @@ def build_ping_diagnosis(ping_metrics: PingMetrics, ping_signals: PingSignals) -
     )
 
 def build_record(ping_info: dict, ping_metrics: PingMetrics, ping_signals: PingSignals, ping_diagnosis: PingDiagnosis) -> PingRecord:
+    now = datetime.now(timezone.utc)
     return PingRecord(
-        run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'),
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        run_id = now.strftime('%Y%m%dT%H%M%S%fZ'),
+        timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         target = ping_info["address"],
         metrics = ping_metrics,
         signals = ping_signals,
