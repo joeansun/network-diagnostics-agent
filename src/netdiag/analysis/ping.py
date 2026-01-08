@@ -106,25 +106,25 @@ def compute_confidence(ping_metrics: PingMetrics, ping_signals: PingSignals, cau
         cfd_value = 1.0
     elif cause == DiagnosisCause.HIGH_LOSS:
         # Precondition: loss_pct >= 5.0
-        if ping_metrics.loss_pct_perc >= 15.0:
+        if ping_metrics.loss_pct_perc >= LOSS_T1:
             cfd_value = 0.95
-        elif ping_metrics.loss_pct_perc >= 8.0:
+        elif ping_metrics.loss_pct_perc >= LOSS_T2:
             cfd_value = 0.85
         else:
             cfd_value = 0.70
     elif cause == DiagnosisCause.UNSTABLE_JITTER:
         # Precondition: jitter_ratio >= 0.25 and jitter > 5 ms
-        if ping_metrics.jitter_ratio >= 0.5 and ping_metrics.jitter >= 12.0:
+        if ping_metrics.jitter_ratio >= JIT_R1 and ping_metrics.jitter >= JIT_A1:
             cfd_value = 0.95
-        elif ping_metrics.jitter_ratio >= 0.35 and ping_metrics.jitter >= 8.0:
+        elif ping_metrics.jitter_ratio >= JIT_R2 and ping_metrics.jitter >= JIT_A2:
             cfd_value = 0.85
         else:
             cfd_value = 0.70
     elif cause == DiagnosisCause.HIGH_LATENCY:
         # Precondition: rtt_avg_ms >= 150 ms
-        if ping_metrics.rtt_avg_ms >= 400.0:
+        if ping_metrics.rtt_avg_ms >= LAT_T1:
             cfd_value = 0.95
-        elif ping_metrics.rtt_avg_ms >= 250.0:
+        elif ping_metrics.rtt_avg_ms >= LAT_T2:
             cfd_value = 0.85
         else:
             cfd_value = 0.70
