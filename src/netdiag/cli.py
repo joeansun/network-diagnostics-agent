@@ -18,7 +18,7 @@ def cmd_dns(args, app_config):
     pass
 
 def cmd_run(args, app_config):
-    pass
+    cmd_ping(args, app_config)
 
 
 def build_parser():

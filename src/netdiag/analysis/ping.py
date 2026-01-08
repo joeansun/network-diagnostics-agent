@@ -5,11 +5,6 @@ from enum import Enum
 from netdiag.data.ping import *
 from itertools import dropwhile
 
-
-# class 
-
-
-
 def parse_ping(raw_input: str) -> dict:
     ping_info = dict()
     splitted_inputs = raw_input.splitlines()
@@ -137,20 +132,23 @@ def compute_confidence(ping_metrics: PingMetrics, ping_signals: PingSignals, cau
     if ping_metrics.sent < 20 and cause not in (DiagnosisCause.OK, DiagnosisCause.NO_CONNECTIVITY):
         cfd_value = max(0.30, cfd_value - 0.20)
 
-
     return min(1.0, max(0.0, cfd_value))
 
 
-def summarise_evidence() -> dict[str, str]:
-    ...
+def summarise_evidence(ping_metrics: PingMetrics, cause: DiagnosisCause) -> dict[str, float]:
+    evidence = {}
+    for field in CAUSE_EVIDENCE_FIELDS[cause]:
+        evidence[field] = getattr(ping_metrics, field)
 
-def build_ping_diagnosis(ping_signals: PingSignals) -> PingDiagnosis:
+    return evidence
+
+def build_ping_diagnosis(ping_metrics: PingMetrics, ping_signals: PingSignals) -> PingDiagnosis:
     cause = diagnose_from_signals(ping_signals)
     return PingDiagnosis(
         cause = cause,
         summary = summarise_causes(cause),
-        confidence = compute_confidence(),
-        evidence = summarise_evidence()
+        confidence = compute_confidence(ping_metrics, ping_signals, cause),
+        evidence = summarise_evidence(ping_metrics, cause)
     )
 
 def build_record(ping_info: dict, ping_metrics: PingMetrics, ping_signals: PingSignals, ping_diagnosis: PingDiagnosis) -> PingRecord:
@@ -163,28 +161,12 @@ def build_record(ping_info: dict, ping_metrics: PingMetrics, ping_signals: PingS
         diagnosis = ping_diagnosis
     )
 
-def ping_analysis(raw_input: str) -> None:
+def ping_analysis(raw_input: str) -> PingRecord:
     ping_info = parse_ping(raw_input)
-    print(ping_info)
 
     ping_metrics = build_ping_metrics(ping_info)
     ping_signals = build_ping_signals(ping_metrics)
-    ping_diagnosis = build_ping_diagnosis(ping_signals)
+    ping_diagnosis = build_ping_diagnosis(ping_metrics, ping_signals)
     ping_record = build_record(ping_info, ping_metrics, ping_signals, ping_diagnosis)
 
-    print(ping_metrics)
-    print(ping_signals)
-    
-
-
-command = "ping -c 5 google.com"
-result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=True,
-        )
-print(result.stdout)
-print()
-ping_analysis(result.stdout)
+    return ping_record
