@@ -87,7 +87,9 @@ def build_ping_signals(ping_metrics: PingMetrics) -> PingSignals:
         any_loss = ping_metrics.loss_pct_perc > 0.0,
         high_loss = ping_metrics.loss_pct_perc >= HIGH_PACKET_LOSS_THRESHOLD_PCT,
         high_latency = ping_metrics.rtt_avg_ms >= HIGH_LATENCY_THRESHOLD_MS,
-        unstable_jitter = ping_metrics.jitter_ratio > UNSTABLE_JITTER,
+
+        # unstable jitter must satisfy both conditions so fewer false alert
+        unstable_jitter = ping_metrics.jitter_ratio >= UNSTABLE_JITTER and ping_metrics.jitter >= UNSTABLE_JITTER_ABS_MS,
         unstable = (
             ping_metrics.rtt_stddev_ms >= UNSTABLE_DEVIATION * ping_metrics.rtt_avg_ms
             or (ping_metrics.rtt_max_ms - ping_metrics.rtt_min_ms) >= 100.0
@@ -95,20 +97,58 @@ def build_ping_signals(ping_metrics: PingMetrics) -> PingSignals:
     )
 
 # CAUSE_SUMMARY located in data/ping.py 
-def summarise_causes(causes: DiagnosisCause) -> str:
-    return CAUSE_SUMMARY.get(causes, "Unknown or unclassified condition.")
+def summarise_causes(cause: DiagnosisCause) -> str:
+    return CAUSE_SUMMARY.get(cause, "Unknown or unclassified condition.")
 
-def compute_confidence(ping_metrics: PingMetrics, ping_signals: PingSignals, causes: DiagnosisCause) -> float:
-    ...
+# confidence is a value between [0.0, 1.0], 1.0 represents very cause
+def compute_confidence(ping_metrics: PingMetrics, ping_signals: PingSignals, cause: DiagnosisCause) -> float:
+    if cause == DiagnosisCause.NO_CONNECTIVITY:
+        cfd_value = 1.0
+    elif cause == DiagnosisCause.HIGH_LOSS:
+        # Precondition: loss_pct >= 5.0
+        if ping_metrics.loss_pct_perc >= 15.0:
+            cfd_value = 0.95
+        elif ping_metrics.loss_pct_perc >= 8.0:
+            cfd_value = 0.85
+        else:
+            cfd_value = 0.70
+    elif cause == DiagnosisCause.UNSTABLE_JITTER:
+        # Precondition: jitter_ratio >= 0.25 and jitter > 5 ms
+        if ping_metrics.jitter_ratio >= 0.5 and ping_metrics.jitter >= 12.0:
+            cfd_value = 0.95
+        elif ping_metrics.jitter_ratio >= 0.35 and ping_metrics.jitter >= 8.0:
+            cfd_value = 0.85
+        else:
+            cfd_value = 0.70
+    elif cause == DiagnosisCause.HIGH_LATENCY:
+        # Precondition: rtt_avg_ms >= 150 ms
+        if ping_metrics.rtt_avg_ms >= 400.0:
+            cfd_value = 0.95
+        elif ping_metrics.rtt_avg_ms >= 250.0:
+            cfd_value = 0.85
+        else:
+            cfd_value = 0.70
+    elif cause == DiagnosisCause.OK:
+        cfd_value = 1.0
+
+    else:
+        cfd_value = 0.5
+
+    if ping_metrics.sent < 20 and cause not in (DiagnosisCause.OK, DiagnosisCause.NO_CONNECTIVITY):
+        cfd_value = max(0.30, cfd_value - 0.20)
+
+
+    return min(1.0, max(0.0, cfd_value))
+
 
 def summarise_evidence() -> dict[str, str]:
     ...
 
 def build_ping_diagnosis(ping_signals: PingSignals) -> PingDiagnosis:
-    causes = diagnose_from_signals(ping_signals)
+    cause = diagnose_from_signals(ping_signals)
     return PingDiagnosis(
-        causes = causes,
-        summary = summarise_causes(causes),
+        cause = cause,
+        summary = summarise_causes(cause),
         confidence = compute_confidence(),
         evidence = summarise_evidence()
     )
