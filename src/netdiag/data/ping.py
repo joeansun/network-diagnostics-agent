@@ -29,6 +29,55 @@ CAUSE_SUMMARY = {
     DiagnosisCause.OK: "Connection appears normal.",
 }
 
+# This cause evidence fields could be refactored into metrics and reasoning
+# in the future if needed as it would be benefit to show multiple signals
+# as evidence 
+# Currently, only metrics are shown 
+CAUSE_EVIDENCE_FIELDS = {
+    DiagnosisCause.OK: [
+        "loss_pct_perc", 
+        "rtt_avg_ms",
+        "jitter_ratio"
+    ],
+    DiagnosisCause.NO_CONNECTIVITY: [
+        "sent",
+        "received",
+        "loss_pct_perc",
+    ], 
+    DiagnosisCause.HIGH_LOSS: [
+        "loss_pct_perc",
+        "sent",
+        "received",
+    ], 
+    DiagnosisCause.UNSTABLE_JITTER: [
+        "jitter",
+        "jitter_ratio",
+        "rtt_avg_ms",
+    ],
+    DiagnosisCause.HIGH_LATENCY: [
+        "rtt_avg_ms",
+        "rtt_min_ms",
+        "rtt_max_ms",
+        "loss_pct_perc",
+    ]
+}
+
+
+# for storing ping info in parse_ping function
+@dataclass(frozen=True, slots=True)
+class PingParseResult:
+    address: str
+    times_ms: list[float]
+    sent: int
+    received: int
+    loss_pct: float
+    rtt_min_ms: float
+    rtt_avg_ms: float
+    rtt_max_ms: float
+    rtt_stddev_ms: float
+    jitter_ms: float
+    jitter_ratio: float
+
 @dataclass
 class PingMetrics:
     sent : int
