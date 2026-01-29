@@ -135,6 +135,14 @@ def compute_confidence(ping_metrics: PingMetrics, ping_signals: PingSignals, cau
     return min(1.0, max(0.0, cfd_value))
 
 
+CAUSE_EVIDENCE_FIELDS: dict[DiagnosisCause, tuple[str, ...]] = {
+    DiagnosisCause.NO_CONNECTIVITY: ("sent", "received"),
+    DiagnosisCause.HIGH_LOSS: ("sent", "received", "loss_pct_perc"),
+    DiagnosisCause.UNSTABLE_JITTER: ("jitter", "jitter_ratio", "rtt_stddev_ms", "rtt_avg_ms"),
+    DiagnosisCause.HIGH_LATENCY: ("rtt_avg_ms", "rtt_min_ms", "rtt_max_ms"),
+    DiagnosisCause.OK: ("loss_pct_perc", "rtt_avg_ms", "jitter"),
+}
+
 def summarise_evidence(ping_metrics: PingMetrics, cause: DiagnosisCause) -> dict[str, float]:
     evidence = {}
     for field in CAUSE_EVIDENCE_FIELDS[cause]:
