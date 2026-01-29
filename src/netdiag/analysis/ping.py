@@ -34,8 +34,23 @@ _RTT_RE = re.compile(
 )
 
 
-def PingParseError(ValueError):
+class PingParseError(ValueError):
     """Ping output doesn't match the expected format."""
+    pass
+
+
+def compute_jitter(times_ms: list[float]) -> tuple[float, float]:
+    ok = [t for t in times_ms if t is not None]
+    if len(ok) < 2:
+        return 0.0, 0.0
+
+    diffs = [abs(ok[i] - ok[i-1]) for i in range(1, len(ok))]
+    jitter_ms = sum(diffs) / len(diffs)
+
+    rtt_avg = sum(ok) / len(ok)
+    jitter_ratio = jitter_ms / max(rtt_avg, 1.0)
+
+    return jitter_ms, jitter_ratio
 
 def parse_ping(raw_input: str) -> ping.PingParseResult:
     lines = [ln.strip() for ln in raw_input.splitlines() if ln.strip()]
@@ -78,13 +93,11 @@ def parse_ping(raw_input: str) -> ping.PingParseResult:
             rtt_min = rtt_avg = rtt_max = rtt_std = 0.0
         else:
             raise PingParseError("missing rtt stats line despite receiving replies")
-
     
+    # Parse jitter and jitter_ratio
+    jitter_ms, jitter_ratio = compute_jitter(times_ms)
 
-
-
-
-    return PingParseResult(
+    return ping.PingParseResult(
         address = addr,
         times_ms = times_ms, 
         sent = sent, 
@@ -94,10 +107,9 @@ def parse_ping(raw_input: str) -> ping.PingParseResult:
         rtt_avg_ms = rtt_avg,
         rtt_max_ms = rtt_max,
         rtt_stddev_ms = rtt_std,
-        jitter_ms = 
-        jitter_ratio = 
+        jitter_ms = jitter_ms,
+        jitter_ratio = jitter_ratio
     )
-
 
 
 def parse_ping(raw_input: str) -> dict:
@@ -229,22 +241,6 @@ def compute_confidence(ping_metrics: ping.PingMetrics, ping_signals: ping.PingSi
 
     return min(1.0, max(0.0, cfd_value))
 
-
-CAUSE_EVIDENCE_FIELDS: dict[DiagnosisCause, tuple[str, ...]] = {
-    DiagnosisCause.NO_CONNECTIVITY: ("sent", "received"),
-    DiagnosisCause.HIGH_LOSS: ("sent", "received", "loss_pct_perc"),
-    DiagnosisCause.UNSTABLE_JITTER: ("jitter", "jitter_ratio", "rtt_stddev_ms", "rtt_avg_ms"),
-    DiagnosisCause.HIGH_LATENCY: ("rtt_avg_ms", "rtt_min_ms", "rtt_max_ms"),
-    DiagnosisCause.OK: ("loss_pct_perc", "rtt_avg_ms", "jitter"),
-}
-
-CAUSE_EVIDENCE_FIELDS: dict[DiagnosisCause, tuple[str, ...]] = {
-    DiagnosisCause.NO_CONNECTIVITY: ("sent", "received"),
-    DiagnosisCause.HIGH_LOSS: ("sent", "received", "loss_pct_perc"),
-    DiagnosisCause.UNSTABLE_JITTER: ("jitter", "jitter_ratio", "rtt_stddev_ms", "rtt_avg_ms"),
-    DiagnosisCause.HIGH_LATENCY: ("rtt_avg_ms", "rtt_min_ms", "rtt_max_ms"),
-    DiagnosisCause.OK: ("loss_pct_perc", "rtt_avg_ms", "jitter"),
-}
 
 def summarise_evidence(ping_metrics: ping.PingMetrics, cause: ping.DiagnosisCause) -> dict[str, float]:
     evidence = {}
