@@ -82,7 +82,7 @@ class PingParseResult:
 class PingMetrics:
     sent : int
     received : int
-    loss_pct_perc : float
+    loss_pct : float
     rtt_min_ms : float
     rtt_avg_ms : float
     rtt_max_ms : float
