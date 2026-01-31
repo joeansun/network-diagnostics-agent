@@ -1,125 +1,13 @@
-import re
 import netdiag.data.ping as ping
-from enum import Enum
 from datetime import datetime, timezone
-from itertools import dropwhile
+from netdiag.os.base import OSAdapter
 
-
-# 64 bytes from 142.251.46.174: icmp_seq=3 ttl=107 time=(1008).473 ms
-# 64 bytes from 142.251.46.174: icmp_seq=4 ttl=107 time=943.241 ms
-
-_TIME_RE = re.compile(r"\btime[=<]\s*(?P<ms>[\d().]+)\s*ms\b", re.IGNORECASE)
-
-
-# --- google.com ping statistics ---
-_ADDR_RE = re.compile(r"^---\s+(?P<addr>.+?)\s+ping statistics\s+---$", re.IGNORECASE)
-
-# Packet line variants:
-# macOS: "5 packets transmitted, 5 packets received, 0.0% packet loss"
-# iputils: "5 packets transmitted, 5 received, 0% packet loss, time 4006ms"
-# BusyBox: "5 packets transmitted, 4 packets received, 20% packet loss"
-_PACKET_RE = re.compile(r"(?P<tx>\d+)\s+packets transmitted,\s+" 
-                       r"(?P<rx>\d+)\s+(?:packets\s+)?received,\s+" 
-                       r"(?P<loss>\d+(?:\.\d+)?)%\s+packet loss",
-                       re.IGNORECASE)
-
-# macOS: "round-trip min/avg/max/stddev = ... ms"
-# Linux: "rtt min/avg/max/mdev = ... ms"
-_RTT_RE = re.compile(
-    r"(?:round-trip|rtt)\s+min/avg/max/(?:stddev|mdev)\s*=\s*"
-    r"(?P<min>\d+(?:\.\d+)?)/(?P<avg>\d+(?:\.\d+)?)/(?P<max>\d+(?:\.\d+)?)/(?P<std>\d+(?:\.\d+)?)",
-    re.IGNORECASE,
-)
-
-
-class PingParseError(ValueError):
-    """Ping output doesn't match the expected format."""
-    pass
-
-
-def compute_jitter(times_ms: list[float]) -> tuple[float, float]:
-    ok = [t for t in times_ms if t is not None]
-    if len(ok) < 2:
-        return 0.0, 0.0
-
-    diffs = [abs(ok[i] - ok[i-1]) for i in range(1, len(ok))]
-    jitter = sum(diffs) / len(diffs)
-
-    rtt_avg = sum(ok) / len(ok)
-    jitter_ratio = jitter / max(rtt_avg, 1.0)
-
-    return jitter, jitter_ratio
-
-def parse_ping(raw_input: str) -> ping.PingParseResult:
-    lines = [ln.strip() for ln in raw_input.splitlines() if ln.strip()]
-    if not lines: 
-        raise PingParseError("empty ping output")
-
-    
-    # Parse time for each reply from icmp
-    times_ms: list[float] = []
-    for ln in lines:
-        m = _TIME_RE.search(ln)
-        if m: 
-            raw = m.group("ms")
-            ms = float(raw.replace("(", "").replace(")", ""))
-            times_ms.append(ms)
-
-    # Parse the address from the header 
-    header = next((m for ln in lines if (m := _ADDR_RE.search(ln))), None)
-    if not header:
-        raise PingParseError("missing '--- <address> ping statistics ---' header")
-
-    addr = header.group("addr")
-
-    # Parse the packet information 
-    packets = next((m for ln in lines if (m := _PACKET_RE.search(ln))), None)
-    if not packets:
-        raise PingParseError("missing packets summary line")
-    
-    sent = int(packets.group("tx"))
-    received = int(packets.group("rx"))
-    loss_pct = float(packets.group("loss"))
-
-    # Parse the RTT stats
-    rtt = next((m for ln in lines if (m := _RTT_RE.search(ln))), None)
-    if rtt:
-        rtt_min = float(rtt.group("min"))
-        rtt_avg = float(rtt.group("avg"))
-        rtt_max = float(rtt.group("max"))
-        rtt_std = float(rtt.group("std"))
-    else:
-        if received == 0:
-            # Policy: if no replies, allow RTT fields = 0.0
-            rtt_min = rtt_avg = rtt_max = rtt_std = 0.0
-        else:
-            raise PingParseError("missing rtt stats line despite receiving replies")
-    
-    # Parse jitter and jitter_ratio
-    jitter, jitter_ratio = compute_jitter(times_ms)
-
-    return ping.PingParseResult(
-        address = addr,
-        times_ms = times_ms, 
-        sent = sent, 
-        received = received, 
-        loss_pct = loss_pct,
-        rtt_min_ms = rtt_min,
-        rtt_avg_ms = rtt_avg,
-        rtt_max_ms = rtt_max,
-        rtt_stddev_ms = rtt_std,
-        jitter = jitter,
-        jitter_ratio = jitter_ratio
-    )
-    return None
-
-# DiagnosisCause located in data/ping.py
 def diagnose_from_signals(signal: ping.PingSignals) -> ping.DiagnosisCause:
     if signal.no_reply: return ping.DiagnosisCause.NO_CONNECTIVITY
-    if signal.high_loss: return ping.DiagnosisCause.HIGH_LOSS
-    if signal.unstable_jitter: return ping.DiagnosisCause.UNSTABLE_JITTER
-    if signal.high_latency: return ping.DiagnosisCause.HIGH_LATENCY
-    return ping.DiagnosisCause.OK
+    elif signal.high_loss: return ping.DiagnosisCause.HIGH_LOSS
+    elif signal.unstable_jitter: return ping.DiagnosisCause.UNSTABLE_JITTER
+    elif signal.high_latency: return ping.DiagnosisCause.HIGH_LATENCY
+    else: return ping.DiagnosisCause.OK
 
 def build_ping_metrics(ping_info: ping.PingParseResult) -> ping.PingMetrics:
     return ping.PingMetrics(
@@ -145,16 +33,15 @@ def build_ping_signals(ping_metrics: ping.PingMetrics) -> ping.PingSignals:
         unstable_jitter = ping_metrics.jitter_ratio >= ping.UNSTABLE_JITTER and ping_metrics.jitter >= ping.UNSTABLE_JITTER_ABS_MS,
         unstable = (
             ping_metrics.rtt_stddev_ms >= ping.UNSTABLE_DEVIATION * ping_metrics.rtt_avg_ms
-            or (ping_metrics.rtt_max_ms - ping_metrics.rtt_min_ms) >= 100.0
+            or (ping_metrics.rtt_max_ms - ping_metrics.rtt_min_ms) >= ping.UNSTABLE_RTT_SPREAD_MS 
         )
     )
 
-# CAUSE_SUMMARY located in data/ping.py 
 def summarise_causes(cause: ping.DiagnosisCause) -> str:
     return ping.CAUSE_SUMMARY.get(cause, "Unknown or unclassified condition.")
 
 # confidence is a value between [0.0, 1.0], 1.0 represents very cause
-def compute_confidence(ping_metrics: ping.PingMetrics, ping_signals: ping.PingSignals, cause: ping.DiagnosisCause) -> float:
+def compute_confidence(ping_metrics: ping.PingMetrics, cause: ping.DiagnosisCause) -> float:
     if cause == ping.DiagnosisCause.NO_CONNECTIVITY:
         cfd_value = 1.0
     elif cause == ping.DiagnosisCause.HIGH_LOSS:
@@ -189,6 +76,7 @@ def compute_confidence(ping_metrics: ping.PingMetrics, ping_signals: ping.PingSi
     if ping_metrics.sent < 20 and cause not in (ping.DiagnosisCause.OK, ping.DiagnosisCause.NO_CONNECTIVITY):
         cfd_value = max(0.30, cfd_value - 0.20)
 
+    # defensive for future usage
     return min(1.0, max(0.0, cfd_value))
 
 
@@ -204,7 +92,7 @@ def build_ping_diagnosis(ping_metrics: ping.PingMetrics, ping_signals: ping.Ping
     return ping.PingDiagnosis(
         cause = cause,
         summary = summarise_causes(cause),
-        confidence = compute_confidence(ping_metrics, ping_signals, cause),
+        confidence = compute_confidence(ping_metrics, cause),
         evidence = summarise_evidence(ping_metrics, cause)
     )
 
@@ -226,21 +114,18 @@ def build_record(
         diagnosis = ping_diagnosis
     )
 
-def ping_analysis(raw_input: str) -> ping.PingRecord:
-    ping_info = parse_ping(raw_input)
-    # print(raw_input)
-    # ping_metrics = build_ping_metrics(ping_info)
-    # ping_signals = build_ping_signals(ping_metrics)
-    # ping_diagnosis = build_ping_diagnosis(ping_metrics, ping_signals)
+def ping_analysis(os_adapter: OSAdapter, raw_input: str) -> ping.PingRecord:
+    ping_info = os_adapter.parse_ping(raw_input)
+    ping_metrics = build_ping_metrics(ping_info)
+    ping_signals = build_ping_signals(ping_metrics)
+    ping_diagnosis = build_ping_diagnosis(ping_metrics, ping_signals)
 
-    # now = datetime.now(timezone.utc)
-    # ping_record = build_record(
-    #     now=now,
-    #     ping_info=ping_info,
-    #     ping_metrics=ping_metrics,
-    #     ping_signals=ping_signals,
-    #     ping_diagnosis=ping_diagnosis,
-    # )
+    now = datetime.now(timezone.utc)
 
-    # return ping_record
-    return None
+    return build_record(
+        now=now,
+        ping_info=ping_info,
+        ping_metrics=ping_metrics,
+        ping_signals=ping_signals,
+        ping_diagnosis=ping_diagnosis,
+    )

@@ -7,6 +7,7 @@ HIGH_LATENCY_THRESHOLD_MS = 150
 UNSTABLE_DEVIATION = 0.30
 UNSTABLE_JITTER_ABS_MS = 5.0
 UNSTABLE_JITTER = 0.25
+UNSTABLE_RTT_SPREAD_MS = 100.0
 
 LOSS_T1=15.0; LOSS_T2=8.0
 LAT_T1=400.0; LAT_T2=250.0
@@ -35,17 +36,17 @@ CAUSE_SUMMARY = {
 # Currently, only metrics are shown 
 CAUSE_EVIDENCE_FIELDS = {
     DiagnosisCause.OK: [
-        "loss_pct_perc", 
+        "loss_pct", 
         "rtt_avg_ms",
         "jitter_ratio"
     ],
     DiagnosisCause.NO_CONNECTIVITY: [
         "sent",
         "received",
-        "loss_pct_perc",
+        "loss_pct",
     ], 
     DiagnosisCause.HIGH_LOSS: [
-        "loss_pct_perc",
+        "loss_pct",
         "sent",
         "received",
     ], 
@@ -58,7 +59,7 @@ CAUSE_EVIDENCE_FIELDS = {
         "rtt_avg_ms",
         "rtt_min_ms",
         "rtt_max_ms",
-        "loss_pct_perc",
+        "loss_pct",
     ]
 }
 
@@ -75,7 +76,7 @@ class PingParseResult:
     rtt_avg_ms: float
     rtt_max_ms: float
     rtt_stddev_ms: float
-    jitter_ms: float
+    jitter: float
     jitter_ratio: float
 
 @dataclass
@@ -114,3 +115,7 @@ class PingRecord:
     metrics: PingMetrics
     signals: PingSignals
     diagnosis: PingDiagnosis
+
+class PingParseError(ValueError):
+    """Ping output doesn't match the expected format."""
+    pass

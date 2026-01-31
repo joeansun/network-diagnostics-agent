@@ -12,6 +12,4 @@ def get_os_adapter() -> OSAdapter:
         raise RuntimeError(f"Unsupported OS: {system}")
 
 
-
-
 all = ["OSAdapter", "get_os_adapter"]

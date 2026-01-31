@@ -1,4 +1,6 @@
 import subprocess
+
+from netdiag.analysis.ping import ping_analysis
 from netdiag.os import get_os_adapter
 
 
@@ -12,8 +14,10 @@ def run_ping(app_config):
             count=ping_config.count,
             timeout_ms=ping_config.timeout_ms
         )
-        
-        print(result.stdout, result.stderr, result.returncode)
 
+        print(result.stdout, result.stderr, result.returncode)
+        ping_analysis(os_adapter=os_adapter, raw_input=result.stdout)
+
+    
 
 
