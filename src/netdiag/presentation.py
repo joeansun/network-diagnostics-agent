@@ -1,4 +1,4 @@
-from netdiag.analysis.ping import DiagnosisCause, PingRecord
+from netdiag.data.ping import DiagnosisCause, PingRecord
 
 
 def format_welcome_message():
