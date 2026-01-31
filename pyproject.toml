@@ -13,7 +13,7 @@ dependencies = []
 netdiag = "netdiag.cli:main"
 
 [project.optional-dependencies]
-dev = ["ruff", "pytest"]
+dev = ["ruff", "pytest", "platformdirs"]
 
 [tool.ruff]
 line-length = 100
