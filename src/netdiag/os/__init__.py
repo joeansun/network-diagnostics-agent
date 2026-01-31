@@ -1,7 +1,8 @@
+import platform
+
 from .base import OSAdapter
 from .windows import WindowsOSAdapter
 
-import platform
 
 def get_os_adapter() -> OSAdapter:
     system = platform.system()

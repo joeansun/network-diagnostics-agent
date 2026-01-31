@@ -1,14 +1,15 @@
-from netdiag.data.ping import *
+from netdiag.analysis.ping import DiagnosisCause, PingRecord
+
 
 def format_welcome_message():
     return "Welcome to the Network Diagnostics Agent!"
+
 
 def format_ping_report(report: PingRecord) -> str:
     m = report.metrics
     d = report.diagnosis
 
     icon = "✓" if d.cause == DiagnosisCause.OK else "✗"
-
 
     return f"""
         {icon} {report.target} - {d.cause.value.upper()}

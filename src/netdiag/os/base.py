@@ -1,30 +1,35 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import math
 import subprocess
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
 import netdiag.data.ping as ping
+
 
 @dataclass
 class PingCommand:
     cmd: list[str]
     # Due to the different flags used by variouis OSes
-    timeout_flag: str  
+    timeout_flag: str
     count_flag: str
+
 
 # Abstract class for OS-specific implementations
 class OSAdapter(ABC):
-
     @abstractmethod
     def build_ping_command(self, host: str, count: int, timeout_ms: int) -> list[str]:
-        """""Build the ping command based on the OS specifics."""
+        """ ""Build the ping command based on the OS specifics."""
         pass
 
-    def execute_ping(self, host: str, count: int, timeout_ms: int) -> subprocess.CompletedProcess[str]:
-       pass
+    @abstractmethod
+    def execute_ping(
+        self, host: str, count: int, timeout_ms: int
+    ) -> subprocess.CompletedProcess[str]:
+        pass
 
     @abstractmethod
     def parse_ping(self, raw_input: str) -> ping.PingParseResult:
-        """""Parse the ping command based on the OS specifics."""
+        """ ""Parse the ping command based on the OS specifics."""
         pass
 
     @abstractmethod
@@ -37,7 +42,7 @@ class OSAdapter(ABC):
         if len(ok) < 2:
             return 0.0, 0.0
 
-        diffs = [abs(ok[i] - ok[i-1]) for i in range(1, len(ok))]
+        diffs = [abs(ok[i] - ok[i - 1]) for i in range(1, len(ok))]
         jitter = sum(diffs) / len(diffs)
 
         rtt_avg = sum(ok) / len(ok)
@@ -63,5 +68,3 @@ OSAdapter (ABC)
         ├── MacOSAdapter
         └── LinuxAdapter
 """
-    
-    

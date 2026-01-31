@@ -12,9 +12,11 @@ from .loader import ensure_config_file
 #     check=False,
 # )
 
+
 @dataclass(frozen=True)
 class Config:
-    enabled : bool
+    enabled: bool
+
 
 @dataclass(frozen=True)
 class PingConfig(Config):
@@ -23,9 +25,11 @@ class PingConfig(Config):
     timeout_ms: int
     interval_s: int
 
+
 @dataclass(frozen=True)
 class DnsConfig(Config):
     targets: list[str]
+
 
 @dataclass(frozen=True)
 class AppConfig:
@@ -39,16 +43,16 @@ def parse_ping_config(raw: dict) -> PingConfig:
         targets = raw["targets"]
         count = raw["count"]
         timeout_ms = raw["timeout_ms"]
-        interval_s = raw["interval_s"]    
+        interval_s = raw["interval_s"]
     except KeyError as e:
         raise ValueError(f"Missing ping config key: {e}") from None
-    
+
     if not isinstance(enabled, bool):
         raise ValueError("ping.enabled must be a boolean")
-    
+
     if not isinstance(targets, list) or not all(isinstance(t, str) for t in targets):
         raise ValueError("ping.targets must be a list of strings")
-    
+
     if not isinstance(count, int) or count <= 0:
         raise ValueError("ping.count must be a positive integer")
 
@@ -65,14 +69,13 @@ def parse_ping_config(raw: dict) -> PingConfig:
         timeout_ms=timeout_ms,
         interval_s=interval_s,
     )
-    
-# Currently only load ping_config 
+
+
+# Currently only load ping_config
 # TODO: modify the function to integrate for further config file uses
 def load_config() -> AppConfig:
     config_file_path = ensure_config_file()
     with config_file_path.open("rb") as f:
         config_raw = tomllib.load(f)
     ping_config = parse_ping_config(config_raw["probes"]["ping"])
-    return AppConfig(
-        ping=ping_config
-    )
+    return AppConfig(ping=ping_config)
