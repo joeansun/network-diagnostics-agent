@@ -11,7 +11,6 @@ class MyParser(argparse.ArgumentParser):
         self.exit(2)
 
 def cmd_ping(args, app_config):
-    print("cmd_ping")
     run_ping(app_config)
 
 def cmd_dns(args, app_config):

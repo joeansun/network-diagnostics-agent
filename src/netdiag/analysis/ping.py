@@ -1,7 +1,4 @@
-
-from curses import raw
 import re
-import subprocess
 import netdiag.data.ping as ping
 from enum import Enum
 from datetime import datetime, timezone
@@ -40,24 +37,25 @@ class PingParseError(ValueError):
     pass
 
 
-def compute_jitter(times_ms: list[float | None]) -> tuple[float, float]:
+def compute_jitter(times_ms: list[float]) -> tuple[float, float]:
     ok = [t for t in times_ms if t is not None]
     if len(ok) < 2:
         return 0.0, 0.0
 
     diffs = [abs(ok[i] - ok[i-1]) for i in range(1, len(ok))]
-    jitter_ms = sum(diffs) / len(diffs)
+    jitter = sum(diffs) / len(diffs)
 
     rtt_avg = sum(ok) / len(ok)
-    jitter_ratio = jitter_ms / max(rtt_avg, 1.0)
+    jitter_ratio = jitter / max(rtt_avg, 1.0)
 
-    return jitter_ms, jitter_ratio
+    return jitter, jitter_ratio
 
 def parse_ping(raw_input: str) -> ping.PingParseResult:
     lines = [ln.strip() for ln in raw_input.splitlines() if ln.strip()]
     if not lines: 
         raise PingParseError("empty ping output")
 
+    
     # Parse time for each reply from icmp
     times_ms: list[float] = []
     for ln in lines:
@@ -98,7 +96,7 @@ def parse_ping(raw_input: str) -> ping.PingParseResult:
             raise PingParseError("missing rtt stats line despite receiving replies")
     
     # Parse jitter and jitter_ratio
-    jitter_ms, jitter_ratio = compute_jitter(times_ms)
+    jitter, jitter_ratio = compute_jitter(times_ms)
 
     return ping.PingParseResult(
         address = addr,
@@ -110,9 +108,10 @@ def parse_ping(raw_input: str) -> ping.PingParseResult:
         rtt_avg_ms = rtt_avg,
         rtt_max_ms = rtt_max,
         rtt_stddev_ms = rtt_std,
-        jitter_ms = jitter_ms,
+        jitter = jitter,
         jitter_ratio = jitter_ratio
     )
+    return None
 
 # DiagnosisCause located in data/ping.py
 def diagnose_from_signals(signal: ping.PingSignals) -> ping.DiagnosisCause:
@@ -131,15 +130,15 @@ def build_ping_metrics(ping_info: ping.PingParseResult) -> ping.PingMetrics:
         rtt_avg_ms=ping_info.rtt_avg_ms,
         rtt_max_ms=ping_info.rtt_max_ms,
         rtt_stddev_ms=ping_info.rtt_stddev_ms,
-        jitter=ping_info.jitter_ms,
+        jitter=ping_info.jitter,
         jitter_ratio=ping_info.jitter_ratio,
     )
 
 def build_ping_signals(ping_metrics: ping.PingMetrics) -> ping.PingSignals:
     return ping.PingSignals(
         no_reply = ping_metrics.received == 0,
-        any_loss = ping_metrics.loss_pct_perc > 0.0,
-        high_loss = ping_metrics.loss_pct_perc >= ping.HIGH_PACKET_LOSS_THRESHOLD_PCT,
+        any_loss = ping_metrics.loss_pct > 0.0,
+        high_loss = ping_metrics.loss_pct >= ping.HIGH_PACKET_LOSS_THRESHOLD_PCT,
         high_latency = ping_metrics.rtt_avg_ms >= ping.HIGH_LATENCY_THRESHOLD_MS,
 
         # unstable jitter must satisfy both conditions so fewer false alert
@@ -160,9 +159,9 @@ def compute_confidence(ping_metrics: ping.PingMetrics, ping_signals: ping.PingSi
         cfd_value = 1.0
     elif cause == ping.DiagnosisCause.HIGH_LOSS:
         # Precondition: loss_pct >= 5.0
-        if ping_metrics.loss_pct_perc >= ping.LOSS_T1:
+        if ping_metrics.loss_pct >= ping.LOSS_T1:
             cfd_value = 0.95
-        elif ping_metrics.loss_pct_perc >= ping.LOSS_T2:
+        elif ping_metrics.loss_pct >= ping.LOSS_T2:
             cfd_value = 0.85
         else:
             cfd_value = 0.70
@@ -184,7 +183,6 @@ def compute_confidence(ping_metrics: ping.PingMetrics, ping_signals: ping.PingSi
             cfd_value = 0.70
     elif cause == ping.DiagnosisCause.OK:
         cfd_value = 1.0
-
     else:
         cfd_value = 0.5
 
@@ -230,18 +228,19 @@ def build_record(
 
 def ping_analysis(raw_input: str) -> ping.PingRecord:
     ping_info = parse_ping(raw_input)
+    # print(raw_input)
+    # ping_metrics = build_ping_metrics(ping_info)
+    # ping_signals = build_ping_signals(ping_metrics)
+    # ping_diagnosis = build_ping_diagnosis(ping_metrics, ping_signals)
 
-    ping_metrics = build_ping_metrics(ping_info)
-    ping_signals = build_ping_signals(ping_metrics)
-    ping_diagnosis = build_ping_diagnosis(ping_metrics, ping_signals)
+    # now = datetime.now(timezone.utc)
+    # ping_record = build_record(
+    #     now=now,
+    #     ping_info=ping_info,
+    #     ping_metrics=ping_metrics,
+    #     ping_signals=ping_signals,
+    #     ping_diagnosis=ping_diagnosis,
+    # )
 
-    now = datetime.now(timezone.utc)
-    ping_record = build_record(
-        now=now,
-        ping_info=ping_info,
-        ping_metrics=ping_metrics,
-        ping_signals=ping_signals,
-        ping_diagnosis=ping_diagnosis,
-    )
-
-    return ping_record
+    # return ping_record
+    return None
