@@ -2,7 +2,13 @@ import argparse
 import uuid
 
 from netdiag.config.config import load_config
-from netdiag.database import create_db, get_db_connection, insert_ping_records_db, insert_sessionss_db, update_session_status_db
+from netdiag.database import (
+    create_db,
+    get_db_connection,
+    insert_ping_records_db,
+    insert_sessionss_db,
+    update_session_status_db,
+)
 from netdiag.os import get_os_adapter
 from netdiag.presentation import format_ping_report
 from netdiag.probes.ping import run_ping
