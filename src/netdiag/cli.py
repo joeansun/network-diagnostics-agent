@@ -2,7 +2,7 @@ import argparse
 import uuid
 
 from netdiag.config.config import load_config
-from netdiag.database import create_db, get_db_connection, insert_ping_records_db
+from netdiag.database import create_db, get_db_connection, insert_ping_records_db, insert_sessionss_db, update_session_status_db
 from netdiag.os import get_os_adapter
 from netdiag.presentation import format_ping_report
 from netdiag.probes.ping import run_ping
@@ -69,8 +69,21 @@ def main() -> None:
     args = parser.parse_args()
     app_config = load_config()
     run_id = str(uuid.uuid4())
+    
     with get_db_connection(app_config.database_path) as conn:
         create_db(conn)
-        args.func(args, app_config, conn, run_id)
+        insert_sessionss_db(
+            run_id=run_id,
+            command=args.command,
+            conn=conn,
+        )
+
+        try:
+            args.func(args, app_config, conn, run_id)
+            status = "completed"
+        except Exception:
+            status = "failed"
+        finally:
+            update_session_status_db(run_id=run_id, status=status, conn=conn)
 
     return None

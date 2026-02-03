@@ -65,6 +65,33 @@ def create_db(conn: sqlite3.Connection) -> None:
         );
     ''')
 
+
+
+def insert_sessionss_db(*, run_id: str, 
+                           command: str,
+                           status: str = "running", 
+                           conn: sqlite3.Connection) -> None:
+    conn.execute('''
+        INSERT INTO sessions (
+            session_id, command, status
+        ) VALUES (?, ?, ?)
+    ''', (run_id, command, status)
+    )
+    
+    conn.commit()
+
+def update_session_status_db(*, 
+                             run_id: str,
+                             status: str, 
+                             conn: sqlite3.Connection) -> None:
+    conn.execute('''
+        UPDATE sessions
+        SET status = ?, completed_at = CURRENT_TIMESTAMP
+        WHERE session_id = ?
+    ''', (status, run_id))
+    
+    conn.commit()
+
 def insert_ping_records_db(*, 
                            run_id: str, 
                            ping_record: PingRecord, 
