@@ -24,7 +24,7 @@ python -m netdiag ping    # Alternative entry point
 
 ## Architecture
 
-Network diagnostics tool with a 4-layer architecture:
+Network diagnostics tool with a 5-layer architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -36,6 +36,9 @@ Network diagnostics tool with a 4-layer architecture:
 ├─────────────────────────────────────────────────────────────┤
 │  Data Layer (data/)                                         │
 │  Dataclasses: ParseResult → Metrics → Signals → Diagnosis   │
+├─────────────────────────────────────────────────────────────┤
+│  Persistence Layer (database.py)                            │
+│  SQLite storage for sessions and probe records              │
 ├─────────────────────────────────────────────────────────────┤
 │  Probes Layer (probes/)                                     │
 │  Execute measurements: ping, dns, http, tcp                 │
@@ -72,6 +75,28 @@ Threshold constants that drive signal detection:
 ## Configuration
 
 TOML config at `~/.config/netdiag/config.toml` (platform-aware via platformdirs). See `config_example.toml` for structure. Falls back to `DEFAULT_CONFIG` in `config/default.py`.
+
+## Database Persistence
+
+SQLite database stores probe results and session history for analysis and trending:
+
+**Schema:**
+- `sessions` table - Tracks command execution sessions with status tracking
+- `ping_records` table - Stores complete ping probe data (metrics, signals, diagnosis)
+
+**Key Functions (database.py):**
+- `create_db()` - Initialize database schema
+- `insert_sessionss_db()` - Create new session record
+- `update_session_status_db()` - Update session completion status
+- `insert_ping_records_db()` - Store PingRecord with full diagnostic data
+- `get_db_connection()` - Context manager for safe connection handling
+
+Database location: `~/.config/netdiag/netdiag.db` (follows XDG Base Directory specification)
+
+Data stored includes:
+- Metrics: packet loss, RTT statistics, jitter
+- Signals: boolean flags for detected conditions
+- Diagnosis: cause, confidence, summary, evidence (JSON)
 
 ## Cross-Platform Considerations
 
