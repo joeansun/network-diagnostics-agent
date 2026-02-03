@@ -9,7 +9,7 @@ def format_ping_report(report: PingRecord) -> str:
     m = report.metrics
     d = report.diagnosis
 
-    icon = "✓" if d.cause == DiagnosisCause.OK else "✗"
+    icon = "[OK]" if d.cause == DiagnosisCause.OK else "[!]"
 
     return f"""
         {icon} {report.target} - {d.cause.value.upper()}

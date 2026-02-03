@@ -35,7 +35,7 @@ class DnsConfig(Config):
 class AppConfig:
     ping: PingConfig
     # dns: DnsConfig
-
+    database_path: str = "netdiag.db"
 
 def parse_ping_config(raw: dict) -> PingConfig:
     try:

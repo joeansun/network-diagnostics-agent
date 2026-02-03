@@ -1,6 +1,14 @@
 import argparse
+import uuid
 
 from netdiag.config.config import load_config
+from netdiag.database import (
+    create_db,
+    get_db_connection,
+    insert_ping_records_db,
+    insert_sessionss_db,
+    update_session_status_db,
+)
 from netdiag.os import get_os_adapter
 from netdiag.presentation import format_ping_report
 from netdiag.probes.ping import run_ping
@@ -15,11 +23,11 @@ class MyParser(argparse.ArgumentParser):
         self.exit(2)
 
 
-def cmd_ping(args, app_config):
+def cmd_ping(args, app_config, conn, run_id):
     os_adapter = get_os_adapter()
     ping_config = app_config.ping
     for host in app_config.ping.targets:
-        report = run_ping(
+        ping_record = run_ping(
             host=host,
             os_adapter=os_adapter,
             count=args.count
@@ -28,16 +36,19 @@ def cmd_ping(args, app_config):
             timeout_ms=args.timeout_ms
             if hasattr(args, "timeout_ms") and args.timeout_ms is not None
             else ping_config.timeout_ms,
+            run_id=run_id,
         )
-        print(format_ping_report(report))
+        
+        insert_ping_records_db(run_id= run_id, conn=conn, ping_record=ping_record)
+        print(format_ping_report(ping_record))
 
 
-def cmd_dns(args, app_config):
+def cmd_dns(args, app_config, conn, run_id):
     pass
 
 
-def cmd_run(args, app_config):
-    cmd_ping(args, app_config)
+def cmd_run(args, app_config, conn, run_id):
+    cmd_ping(args, app_config, conn, run_id)
 
 
 def build_parser():
@@ -59,8 +70,26 @@ def build_parser():
     return parser
 
 
-def main():
+def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     app_config = load_config()
-    return args.func(args, app_config)
+    run_id = str(uuid.uuid4())
+    
+    with get_db_connection(app_config.database_path) as conn:
+        create_db(conn)
+        insert_sessionss_db(
+            run_id=run_id,
+            command=args.command,
+            conn=conn,
+        )
+
+        try:
+            args.func(args, app_config, conn, run_id)
+            status = "completed"
+        except Exception:
+            status = "failed"
+        finally:
+            update_session_status_db(run_id=run_id, status=status, conn=conn)
+
+    return None
