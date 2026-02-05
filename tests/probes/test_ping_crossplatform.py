@@ -12,7 +12,6 @@ import pytest
 from netdiag.data.ping import DiagnosisCause
 from netdiag.probes.ping import run_ping
 from tests.fixtures.ping_samples import (
-    ALL_PLATFORMS,
     LINUX_SAMPLES,
     MACOS_SAMPLES,
     WINDOWS_SAMPLES,

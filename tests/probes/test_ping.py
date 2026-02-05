@@ -12,15 +12,12 @@ import pytest
 from netdiag.data.ping import DiagnosisCause
 from netdiag.probes.ping import run_ping
 from tests.fixtures.ping_samples import (
-    LINUX_HIGH_LOSS,
-    LINUX_NO_RESPONSE,
     MACOS_HIGH_JITTER,
     MACOS_HIGH_LATENCY,
     MACOS_PARTIAL_LOSS,
     MACOS_SUCCESS,
     MACOS_TOTAL_LOSS,
 )
-
 
 # ============================================================================
 # Unit Tests - Using mocked OS adapter
