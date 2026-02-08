@@ -41,6 +41,15 @@ The system is composed of four conceptual layers:
 - Daily and weekly summary reports
 - Static HTML report generation
 
+## Design Choices
+
+- ### About system ICMP ping and raw sockets
+
+The project uses system ping instead of raw sockets for several reasons:
+1. **No root privileges required** - System commands have setuid permissions
+2. **Cross-platform compatibility** - Delegates OS-specific differences to the system
+3. **Focused on diagnostics** - Not a network scanner, doesn't need packet-level control
+
 ## Installation 
 Requirements: 
 - Python 3.11+
