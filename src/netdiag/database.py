@@ -32,7 +32,7 @@ def create_db(conn: sqlite3.Connection) -> None:
     conn.execute('''
         CREATE TABLE IF NOT EXISTS ping_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id TEXT NOT NULL,
+            session_id TEXT NOT NULL,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             target TEXT NOT NULL,
             
@@ -61,13 +61,13 @@ def create_db(conn: sqlite3.Connection) -> None:
             diagnosis_summary TEXT,
             diagnosis_evidence TEXT,  -- JSON string
             
-            FOREIGN KEY (run_id) REFERENCES probe_runs(run_id)
+            FOREIGN KEY (session_id) REFERENCES sessions(session_id)
         );
     ''')
 
 
 
-def insert_sessionss_db(*, run_id: str, 
+def insert_sessions_db(*, session_id: str, 
                            command: str,
                            status: str = "running", 
                            conn: sqlite3.Connection) -> None:
@@ -75,37 +75,37 @@ def insert_sessionss_db(*, run_id: str,
         INSERT INTO sessions (
             session_id, command, status
         ) VALUES (?, ?, ?)
-    ''', (run_id, command, status)
+    ''', (session_id, command, status)
     )
     
     conn.commit()
 
 def update_session_status_db(*, 
-                             run_id: str,
+                             session_id: str,
                              status: str, 
                              conn: sqlite3.Connection) -> None:
     conn.execute('''
         UPDATE sessions
         SET status = ?, completed_at = CURRENT_TIMESTAMP
         WHERE session_id = ?
-    ''', (status, run_id))
+    ''', (status, session_id))
     
     conn.commit()
 
 def insert_ping_records_db(*, 
-                           run_id: str, 
+                           session_id: str, 
                            ping_record: PingRecord, 
                            conn: sqlite3.Connection) -> None:
     conn.execute('''
         INSERT INTO ping_records (
-            run_id, timestamp, target,
+            session_id, timestamp, target,
             sent, received, loss_pct, rtt_min_ms, rtt_avg_ms, rtt_max_ms, rtt_stddev_ms,
             jitter, jitter_ratio,
             no_reply, any_loss, high_loss, high_latency, unstable_jitter, unstable,
             diagnosis_cause, diagnosis_confidence, diagnosis_summary, diagnosis_evidence
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        run_id, 
+        session_id, 
         ping_record.timestamp,
         ping_record.target,
         # Metrics

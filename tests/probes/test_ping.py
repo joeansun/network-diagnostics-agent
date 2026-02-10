@@ -52,7 +52,7 @@ class TestRunPingUnit:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.target == "8.8.8.8"
@@ -86,7 +86,7 @@ class TestRunPingUnit:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.loss_pct == 40.0
@@ -117,7 +117,7 @@ class TestRunPingUnit:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.received == 0
@@ -148,7 +148,7 @@ class TestRunPingUnit:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=2000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.rtt_avg_ms > 250
@@ -180,7 +180,7 @@ class TestRunPingUnit:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.signals.unstable_jitter
@@ -212,14 +212,14 @@ class TestRunPingUnit:
             os_adapter=mock_adapter,
             count=3,
             timeout_ms=500,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         mock_adapter.get_gateway_ip.assert_called_once()
         assert record.target == "192.168.1.1"
 
-    def test_run_id_propagation(self):
-        """Test run_id is properly set in record"""
+    def test_session_id_propagation(self):
+        """Test session_id is properly set in record"""
         mock_adapter = Mock()
         mock_adapter.execute_ping.return_value = subprocess.CompletedProcess(
             args=["ping"], returncode=0, stdout=MACOS_SUCCESS, stderr=""
@@ -238,16 +238,16 @@ class TestRunPingUnit:
             jitter_ratio=0.0,
         )
 
-        run_id = "custom-run-id-456"
+        session_id = "custom-run-id-456"
         record = run_ping(
             host="8.8.8.8",
             os_adapter=mock_adapter,
             count=1,
             timeout_ms=1000,
-            run_id=run_id,
+            session_id=session_id,
         )
 
-        assert record.run_id == run_id
+        assert record.session_id == session_id
 
 
 # ============================================================================
@@ -279,7 +279,7 @@ class TestRunPingIntegration:
             os_adapter=real_adapter,
             count=3,
             timeout_ms=1000,
-            run_id="integration-test",
+            session_id="integration-test",
         )
 
         assert record.target == "127.0.0.1"
@@ -298,7 +298,7 @@ class TestRunPingIntegration:
             os_adapter=real_adapter,
             count=2,
             timeout_ms=500,
-            run_id="integration-test",
+            session_id="integration-test",
         )
 
         assert record.metrics.sent == 2
@@ -317,7 +317,7 @@ class TestRunPingIntegration:
             os_adapter=real_adapter,
             count=3,
             timeout_ms=2000,
-            run_id="integration-test",
+            session_id="integration-test",
         )
 
         assert record.metrics.sent == 3

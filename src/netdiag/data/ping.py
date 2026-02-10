@@ -114,7 +114,7 @@ class PingDiagnosis:
 
 @dataclass
 class PingRecord:
-    run_id: str
+    session_id: str
     timestamp: datetime
     target: str
     metrics: PingMetrics

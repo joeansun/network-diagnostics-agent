@@ -6,7 +6,7 @@ from netdiag.database import (
     create_db,
     get_db_connection,
     insert_ping_records_db,
-    insert_sessionss_db,
+    insert_sessions_db,
     update_session_status_db,
 )
 from netdiag.os import get_os_adapter
@@ -23,7 +23,7 @@ class MyParser(argparse.ArgumentParser):
         self.exit(2)
 
 
-def cmd_ping(args, app_config, conn, run_id):
+def cmd_ping(args, app_config, conn, session_id):
     os_adapter = get_os_adapter()
     ping_config = app_config.ping
     for host in app_config.ping.targets:
@@ -36,19 +36,19 @@ def cmd_ping(args, app_config, conn, run_id):
             timeout_ms=args.timeout_ms
             if hasattr(args, "timeout_ms") and args.timeout_ms is not None
             else ping_config.timeout_ms,
-            run_id=run_id,
+            session_id=session_id,
         )
         
-        insert_ping_records_db(run_id= run_id, conn=conn, ping_record=ping_record)
+        insert_ping_records_db(session_id= session_id, conn=conn, ping_record=ping_record)
         print(format_ping_report(ping_record))
 
 
-def cmd_dns(args, app_config, conn, run_id):
+def cmd_dns(args, app_config, conn, session_id):
     pass
 
 
-def cmd_run(args, app_config, conn, run_id):
-    cmd_ping(args, app_config, conn, run_id)
+def cmd_run(args, app_config, conn, session_id):
+    cmd_ping(args, app_config, conn, session_id)
 
 
 def build_parser():
@@ -74,22 +74,22 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     app_config = load_config()
-    run_id = str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
     
     with get_db_connection(app_config.database_path) as conn:
         create_db(conn)
-        insert_sessionss_db(
-            run_id=run_id,
+        insert_sessions_db(
+            session_id=session_id,
             command=args.command,
             conn=conn,
         )
 
         try:
-            args.func(args, app_config, conn, run_id)
+            args.func(args, app_config, conn, session_id)
             status = "completed"
         except Exception:
             status = "failed"
         finally:
-            update_session_status_db(run_id=run_id, status=status, conn=conn)
+            update_session_status_db(session_id=session_id, status=status, conn=conn)
 
     return None
