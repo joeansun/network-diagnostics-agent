@@ -119,14 +119,14 @@ def build_ping_diagnosis(
 def build_record(
     *,
     now: datetime,
-    run_id: str,
+    session_id: str,
     ping_info: ping.PingParseResult,
     ping_metrics: ping.PingMetrics,
     ping_signals: ping.PingSignals,
     ping_diagnosis: ping.PingDiagnosis,
 ) -> ping.PingRecord:
     return ping.PingRecord(
-        run_id=run_id,
+        session_id=session_id,
         timestamp=now,  # now.strftime("%Y-%m-%dT%H:%M:%SZ")
         target=ping_info.address,
         metrics=ping_metrics,
@@ -135,7 +135,7 @@ def build_record(
     )
 
 
-def ping_analysis(os_adapter: OSAdapter, raw_input: str, run_id: str) -> ping.PingRecord:
+def ping_analysis(os_adapter: OSAdapter, raw_input: str, session_id: str) -> ping.PingRecord:
     ping_info = os_adapter.parse_ping(raw_input)
     ping_metrics = build_ping_metrics(ping_info)
     ping_signals = build_ping_signals(ping_metrics)
@@ -145,7 +145,7 @@ def ping_analysis(os_adapter: OSAdapter, raw_input: str, run_id: str) -> ping.Pi
 
     return build_record(
         now=now,
-        run_id=run_id,
+        session_id=session_id,
         ping_info=ping_info,
         ping_metrics=ping_metrics,
         ping_signals=ping_signals,

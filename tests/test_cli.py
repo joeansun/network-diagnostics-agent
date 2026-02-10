@@ -40,7 +40,7 @@ def sample_config():
 def sample_ping_record():
     """Sample successful ping record"""
     return PingRecord(
-        run_id="test-run-id",
+        session_id="test-run-id",
         timestamp=datetime.now(),
         target="8.8.8.8",
         metrics=PingMetrics(
@@ -97,7 +97,7 @@ def mock_main_deps():
          patch("netdiag.cli.load_config") as mock_load_config, \
          patch("netdiag.cli.get_db_connection") as mock_get_conn, \
          patch("netdiag.cli.create_db") as mock_create_db, \
-         patch("netdiag.cli.insert_sessionss_db") as mock_insert_session, \
+         patch("netdiag.cli.insert_sessions_db") as mock_insert_session, \
          patch("netdiag.cli.update_session_status_db") as mock_update_session, \
          patch("netdiag.cli.uuid.uuid4") as mock_uuid:
 
@@ -256,14 +256,14 @@ class TestCmdPing:
         mocks = mock_cmd_ping_deps
         mocks["run_ping"].return_value = sample_ping_record
 
-        run_id = "test-run-id"
+        session_id = "test-run-id"
         conn = Mock()
         args = argparse.Namespace(count=None, timeout_ms=None)
-        cmd_ping(args, sample_config, conn, run_id)
+        cmd_ping(args, sample_config, conn, session_id)
 
         assert mocks["insert_db"].call_count == 2
         call_kwargs = mocks["insert_db"].call_args.kwargs
-        assert call_kwargs["run_id"] == run_id
+        assert call_kwargs["session_id"] == session_id
         assert call_kwargs["conn"] == conn
         assert call_kwargs["ping_record"] == sample_ping_record
 
@@ -295,9 +295,9 @@ class TestCmdRun:
     @patch("netdiag.cli.cmd_ping")
     def test_calls_cmd_ping(self, mock_cmd_ping):
         """Test cmd_run executes ping command"""
-        args, config, conn, run_id = Mock(), Mock(), Mock(), "test-run-id"
-        cmd_run(args, config, conn, run_id)
-        mock_cmd_ping.assert_called_once_with(args, config, conn, run_id)
+        args, config, conn, session_id = Mock(), Mock(), Mock(), "test-run-id"
+        cmd_run(args, config, conn, session_id)
+        mock_cmd_ping.assert_called_once_with(args, config, conn, session_id)
 
 
 class TestMain:
@@ -319,7 +319,7 @@ class TestMain:
 
         mocks["create_db"].assert_called_once_with(mocks["conn"])
         mocks["insert_session"].assert_called_once_with(
-            run_id="test-uuid", command="ping", conn=mocks["conn"]
+            session_id="test-uuid", command="ping", conn=mocks["conn"]
         )
 
     def test_calls_command_function(self, mock_main_deps):
@@ -338,7 +338,7 @@ class TestMain:
         main()
 
         mocks["update_session"].assert_called_once_with(
-            run_id="test-uuid", status="completed", conn=mocks["conn"]
+            session_id="test-uuid", status="completed", conn=mocks["conn"]
         )
 
     def test_updates_session_status_on_failure(self, mock_main_deps):
@@ -349,7 +349,7 @@ class TestMain:
         main()
 
         mocks["update_session"].assert_called_once_with(
-            run_id="test-uuid", status="failed", conn=mocks["conn"]
+            session_id="test-uuid", status="failed", conn=mocks["conn"]
         )
 
     def test_returns_none(self, mock_main_deps):

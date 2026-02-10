@@ -54,7 +54,7 @@ class TestCrossPlatformParsing:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.target == "8.8.8.8"
@@ -105,7 +105,7 @@ class TestCrossPlatformParsing:
             os_adapter=mock_adapter,
             count=sent,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.loss_pct == pytest.approx(expected_loss, abs=1.0)
@@ -146,7 +146,7 @@ class TestCrossPlatformParsing:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.received == 0
@@ -184,7 +184,7 @@ class TestPlatformSpecificEdgeCases:
             os_adapter=mock_adapter,
             count=2,
             timeout_ms=2000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.rtt_avg_ms > 1000  # Very high latency
@@ -217,7 +217,7 @@ class TestPlatformSpecificEdgeCases:
             os_adapter=mock_adapter,
             count=3,
             timeout_ms=500,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.received == 3
@@ -251,7 +251,7 @@ class TestPlatformSpecificEdgeCases:
             os_adapter=mock_adapter,
             count=3,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.rtt_min_ms == 10.5
@@ -301,7 +301,7 @@ class TestHighLatencyAcrossPlatforms:
             os_adapter=mock_adapter,
             count=4,
             timeout_ms=2000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.metrics.rtt_avg_ms > 250
@@ -353,7 +353,7 @@ class TestUnstableConnectionAcrossPlatforms:
             os_adapter=mock_adapter,
             count=5,
             timeout_ms=1000,
-            run_id="test-123",
+            session_id="test-123",
         )
 
         assert record.signals.unstable_jitter

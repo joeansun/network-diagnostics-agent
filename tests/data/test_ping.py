@@ -241,7 +241,7 @@ class TestPingRecord:
         from datetime import datetime
 
         record = PingRecord(
-            run_id="test-123",
+            session_id="test-123",
             timestamp=datetime.now(),
             target="8.8.8.8",
             metrics=PingMetrics(
@@ -271,7 +271,7 @@ class TestPingRecord:
             ),
         )
 
-        assert record.run_id == "test-123"
+        assert record.session_id == "test-123"
         assert record.target == "8.8.8.8"
         assert isinstance(record.metrics, PingMetrics)
         assert isinstance(record.signals, PingSignals)
